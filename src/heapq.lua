@@ -14,17 +14,23 @@ function isheapq(obj)
 	return getmetatable(obj) == mt
 end
 
-function heapq.new(lst, key)
+function heapq.create (lst, key)
 	
-	H = {position = {}, key = key or operator.identity}
-	
-	setmetatable(H, mt)
-	
-	for i, v in ipairs(lst) do
-		H[i] = v
-		H.position[v] = i
+	local position = {}
+	local key = key or operator.lt
+	local size = 0
+
+	for i, v in ipairs(lst) do 
+		if position[v] then error 'Duplicated item.'
+		else 
+			position[v] = i 
+			size = size + 1
+		end
 	end
-	
+
+	H = {lst = lst, position = position, key = key, size = size}
+	setmetatable(H, mt)
+
 	return H
 end
 
@@ -54,15 +60,19 @@ local function siftdown(heap, startpos, pos, position, key)
 	while pos > startpos do
 		local parentpos = pos >> 1
 		local parent = heap[parentpos]
-		if key(newitem) < key(parent) then
+		
+		if key(newitem, parent) then
             heap[pos] = parent
 			position[parent] = pos
             pos = parentpos
             goto continue
 		end
+
 		break
+		
 		::continue::
 	end
+
 	heap[pos] = newitem
 	position[newitem] = pos
 end
@@ -77,16 +87,18 @@ function heapq.push(heap, item)
 		    _siftdown(heap, 0, len(heap)-1)		
 	]]
 
-	if heap.position[item] then error('Duplicated item') 
+	if heap.position[item] then error 'Duplicated item' 
 	else
-		table.insert(heap, item)
-		len = #heap
+		local lst = heap.lst
+		table.insert(lst, item)
+		local len = heap.size + 1
+		heap.size = len
 		heap.position[item] = len
-		siftdown(heap, 1, len, heap.position, heap.key)
+		siftdown(heap.lst, 1, len, heap.position, heap.key)
 	end
 end
 
-local function siftup(heap, pos, position, key)
+local function siftup(heap, endpos, pos, position, key)
 	--[[
 		def _siftup(heap, pos):
 		    endpos = len(heap)
@@ -108,16 +120,15 @@ local function siftup(heap, pos, position, key)
 		    heap[pos] = newitem
 		    _siftdown(heap, startpos, pos)
 	]]
-	local endpos, startpos, newitem, childpos = #heap, pos, heap[pos], pos << 1
+	local startpos, newitem, childpos = pos, heap[pos], pos << 1
 	
 	-- Bubble up the smaller child until hitting a leaf.
 	while childpos <= endpos do
 	
 		-- Set childpos to index of smaller child.
-		do
-			local rightpos = childpos + 1
-			if rightpos <= endpos and not (key(heap[childpos]) < key(heap[rightpos])) then childpos = rightpos end
-		end
+		local rightpos = childpos + 1
+		if rightpos <= endpos and 
+			not key(heap[childpos], heap[rightpos]) then childpos = rightpos end
 		
 		-- Move the smaller child up.
 		local v = heap[childpos]
@@ -155,32 +166,34 @@ function heapq.pop(heap)
 		    return lastelt		
 	]]
 	
-	local lastelt = table.remove(heap)
+	local lst = heap.lst
+	local lastelt = table.remove(lst)
+	local size = heap.size - 1
+	heap.size = size
 	
 	local position = heap.position
 	
-	if #heap > 0 then
-		local returnitem = heap[1]
+	if size > 0 then
+		local returnitem = lst[1]
 		
-		heap[1] = lastelt
+		lst[1] = lastelt
 		position[returnitem] = nil
 		position[lastelt] = 1
 		
-		siftup(heap, 1, position, heap.key)
+		siftup(lst, size, 1, position, heap.key)
 		
 		return returnitem
 	else
 		position[lastelt] = nil
 		
-		local p = false
-		for _, _ in pairs(position) do p = true; break end
-		assert(not p)
+		local k, i = next(position)
+		assert (not k)
 		
 		return lastelt
 	end
 end
 
-function heapq.heapify(heap, position, key)
+function heapq.heapify(heap)
 	--[[
 		def heapify(x):
 		    """Transform list into a heap, in-place, in O(len(x)) time."""
@@ -194,11 +207,13 @@ function heapq.heapify(heap, position, key)
 		        _siftup(x, i)
 	]]
 	
-	position = position or heap.position or {}
-	key = key or heap.key or {}
+	local lst = heap.lst
+	local size = heap.size
+	local position = heap.position
+	local key = heap.key
 	
-	for i = #heap >> 1, 1, -1 do
-		siftup(heap, i, position, key)
+	for i = size >> 1, 1, -1 do
+		siftup(lst, size, i, position, key)
 	end
 	
 	return heap
@@ -208,7 +223,7 @@ function heapq.sort(heap)
 
 	local sorted = {}
 	
-	while #heap > 0 do table.insert(sorted, heap:pop()) end
+	while heap.size > 0 do table.insert(sorted, heap:pop()) end
 
 	return sorted
 end
