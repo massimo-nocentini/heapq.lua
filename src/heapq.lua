@@ -174,6 +174,24 @@ function heapq.replace (heap, item)
 	else return item end
 end
 
+function heapq.update (heap, item)
+
+	local position = heap.position
+	local i = position[item]
+	if i then
+		local size = heap.size
+		local key = heap.key
+		local lst = heap.lst
+		local p = i >> 1
+		local cl = i << 1
+		local cr = cl + 1
+		if p > 0 and key (item, lst[p]) then siftup (lst, size, p, position, key)
+		elseif (cl <= size and key (lst[cl], item)) then siftdown(lst, 1, cl, position, key)
+		elseif (cr <= size and key (lst[cr], item)) then siftdown(lst, 1, cr, position, key)
+		else end
+	else error 'Item not in the heap.' end
+end
+
 function heapq.sort(heap)
 
 	local sorted = {}
