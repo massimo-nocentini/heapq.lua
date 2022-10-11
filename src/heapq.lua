@@ -157,6 +157,23 @@ function heapq.heapify(heap)
 	return heap
 end
 
+function heapq.replace (heap, item)
+
+	assert (not heap:isempty ())
+
+	local lst = heap.lst
+	local key = heap.key
+
+	if key (lst[1], item) then
+	
+		local returnitem = lst[1]
+		lst[1] = item
+		siftup (lst, heap.size, 1, heap.position, key)
+
+		return returnitem
+	else return item end
+end
+
 function heapq.sort(heap)
 
 	local sorted = {}
