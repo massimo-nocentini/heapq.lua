@@ -62,7 +62,7 @@ end
 
 function heapq.push(heap, item)
 
-	if heap.position[item] then error 'Duplicated item' 
+	if heap.position[item] then error 'Duplicated item'
 	else
 		local lst = heap.lst
 		table.insert(lst, item)
@@ -71,6 +71,8 @@ function heapq.push(heap, item)
 		heap.position[item] = len
 		siftdown(heap.lst, 1, len, heap.position, heap.key)
 	end
+
+	return heap
 end
 
 local function siftup(heap, endpos, pos, position, key)
@@ -123,23 +125,23 @@ function heapq.pop(heap)
 	
 	local position = heap.position
 	
-	if size > 0 then
-		local returnitem = lst[1]
-		
-		lst[1] = lastelt
-		position[returnitem] = nil
-		position[lastelt] = 1
-		
-		siftup(lst, size, 1, position, heap.key)
-		
-		return returnitem
-	else
+	if heap:isempty() then
 		position[lastelt] = nil
 		
 		local k, i = next(position)
 		assert (not k)
 		
 		return lastelt
+	else
+		local returnitem = lst[1]
+		
+		lst[1] = lastelt
+		position[lastelt] = 1
+		position[returnitem] = nil
+		
+		siftup(lst, size, 1, position, heap.key)
+		
+		return returnitem
 	end
 end
 
