@@ -4,8 +4,6 @@ Implementation of an heap, based on the Python implementation.
 	
 --]]
 
-local operator = require 'operator'
-
 local heapq = {}
 
 local mt = { __index = heapq }
@@ -16,19 +14,16 @@ end
 
 function heapq.create (lst, key)
 	
+	lst = lst or {}
 	local position = {}
-	local key = key or operator.lt
-	local size = 0
+	local key = key or function (a, b) return a < b end
 
 	for i, v in ipairs(lst) do 
 		if position[v] then error 'Duplicated item.'
-		else 
-			position[v] = i 
-			size = size + 1
-		end
+		else position[v] = i end
 	end
 
-	H = {lst = lst, position = position, key = key, size = size}
+	H = {lst = lst, position = position, key = key}
 	setmetatable(H, mt)
 
 	return H
@@ -44,10 +39,10 @@ local function siftdown(heap, startpos, pos, position, key)
 		local parent = heap[parentpos]
 
 		if key(newitem, parent) then
-            heap[pos] = parent
-			position[parent] = pos
-            pos = parentpos
-            goto continue
+		    heap[pos] = parent
+		    position[parent] = pos
+		    pos = parentpos
+		    goto continue
 		end
 
 		break
@@ -66,8 +61,7 @@ function heapq.push(heap, item)
 	else
 		local lst = heap.lst
 		table.insert(lst, item)
-		local len = heap.size + 1
-		heap.size = len
+		local len = #lst
 		heap.position[item] = len
 		siftdown(heap.lst, 1, len, heap.position, heap.key)
 	end
@@ -89,9 +83,9 @@ local function siftup(heap, endpos, pos, position, key)
 		
 		-- Move the smaller child up.
 		local v = heap[childpos]
-        heap[pos] = v
+        	heap[pos] = v
 		position[v] = pos
-        pos = childpos
+        	pos = childpos
 		childpos = pos << 1
 	end
 	
@@ -110,9 +104,7 @@ function heapq.invariant(heap)
 end
 
 function heapq.isempty (heap)
-
-	return heap.size == 0
-end
+	return #heap.lst == 0 end
 
 function heapq.pop(heap)
 
@@ -120,8 +112,6 @@ function heapq.pop(heap)
 
 	local lst = heap.lst
 	local lastelt = table.remove(lst)
-	local size = heap.size - 1
-	heap.size = size
 	
 	local position = heap.position
 	
@@ -139,7 +129,7 @@ function heapq.pop(heap)
 		position[lastelt] = 1
 		position[returnitem] = nil
 		
-		siftup(lst, size, 1, position, heap.key)
+		siftup(lst, #lst, 1, position, heap.key)
 		
 		return returnitem
 	end
@@ -148,12 +138,12 @@ end
 function heapq.heapify(heap)
 	
 	local lst = heap.lst
-	local size = heap.size
+	local size = #lst
 	local position = heap.position
 	local key = heap.key
 	
-	for i = size >> 1, 1, -1 do	siftup(lst, size, i, position, key)	end
-	
+	for i = size >> 1, 1, -1 do siftup(lst, size, i, position, key)	end
+
 	return heap
 end
 
@@ -168,7 +158,7 @@ function heapq.replace (heap, item)
 	
 		local returnitem = lst[1]
 		lst[1] = item
-		siftup (lst, heap.size, 1, heap.position, key)
+		siftup (lst, #lst, 1, heap.position, key)
 
 		return returnitem
 	else return item end
@@ -179,9 +169,9 @@ function heapq.update (heap, item)
 	local position = heap.position
 	local i = position[item]
 	if i then
-		local size = heap.size
 		local key = heap.key
 		local lst = heap.lst
+		local size = #lst
 		local p = i >> 1
 		local cl = i << 1
 		local cr = cl + 1
@@ -192,11 +182,18 @@ function heapq.update (heap, item)
 	else error 'Item not in the heap.' end
 end
 
+function heapq.min (heap)
+
+	assert (not heap:isempty ())
+	return heap.lst[1]
+end
+
 function heapq.sort(heap)
 
 	local sorted = {}
+	local lst = heap.lst
 	
-	while heap.size > 0 do table.insert(sorted, heap:pop()) end
+	while #lst > 0 do table.insert(sorted, heap:pop()) end
 
 	return sorted
 end
